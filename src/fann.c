@@ -906,6 +906,9 @@ FANN_EXTERNAL struct fann* FANN_API fann_copy(struct fann* orig)
 	copy->training_algorithm = orig->training_algorithm;
     copy->callback = orig->callback;
 	copy->user_data = orig->user_data;
+	if (orig->user_data_string) {
+		copy->user_data_string = strdup(orig->user_data_string);
+	}
 #ifndef FIXEDFANN
     copy->cascade_output_change_fraction = orig->cascade_output_change_fraction;
     copy->cascade_output_stagnation_epochs = orig->cascade_output_stagnation_epochs;
