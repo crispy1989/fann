@@ -1,17 +1,17 @@
 /*
   Fast Artificial Neural Network Library (fann)
   Copyright (C) 2003-2016 Steffen Nissen (steffen.fann@gmail.com)
-  
+
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
   License as published by the Free Software Foundation; either
   version 2.1 of the License, or (at your option) any later version.
-  
+
   This library is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Lesser General Public License for more details.
-  
+
   You should have received a copy of the GNU Lesser General Public
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -179,7 +179,7 @@ int fann_save_internal_fd(struct fann *ann, FILE * conf, const char *configurati
 	fprintf(conf, "learning_rate=%f\n", ann->learning_rate);
 	fprintf(conf, "connection_rate=%f\n", ann->connection_rate);
 	fprintf(conf, "network_type=%u\n", ann->network_type);
-	
+
 	fprintf(conf, "learning_momentum=%f\n", ann->learning_momentum);
 	fprintf(conf, "training_algorithm=%u\n", ann->training_algorithm);
 	fprintf(conf, "train_error_function=%u\n", ann->train_error_function);
@@ -197,8 +197,8 @@ int fann_save_internal_fd(struct fann *ann, FILE * conf, const char *configurati
 	fprintf(conf, "cascade_candidate_stagnation_epochs=%u\n", ann->cascade_candidate_stagnation_epochs);
 	fprintf(conf, "cascade_max_out_epochs=%u\n", ann->cascade_max_out_epochs);
 	fprintf(conf, "cascade_min_out_epochs=%u\n", ann->cascade_min_out_epochs);
-	fprintf(conf, "cascade_max_cand_epochs=%u\n", ann->cascade_max_cand_epochs);	
-	fprintf(conf, "cascade_min_cand_epochs=%u\n", ann->cascade_min_cand_epochs);	
+	fprintf(conf, "cascade_max_cand_epochs=%u\n", ann->cascade_max_cand_epochs);
+	fprintf(conf, "cascade_min_cand_epochs=%u\n", ann->cascade_min_cand_epochs);
 	fprintf(conf, "cascade_num_candidate_groups=%u\n", ann->cascade_num_candidate_groups);
 
 #ifndef FIXEDFANN
@@ -209,7 +209,7 @@ int fann_save_internal_fd(struct fann *ann, FILE * conf, const char *configurati
 		fprintf(conf, "cascade_weight_multiplier=%u\n", (int) floor((ann->cascade_weight_multiplier * fixed_multiplier) + 0.5));
 	}
 	else
-#endif	
+#endif
 	{
 		fprintf(conf, "bit_fail_limit="FANNPRINTF"\n", ann->bit_fail_limit);
 		fprintf(conf, "cascade_candidate_limit="FANNPRINTF"\n", ann->cascade_candidate_limit);
@@ -221,7 +221,7 @@ int fann_save_internal_fd(struct fann *ann, FILE * conf, const char *configurati
 	for(i = 0; i < ann->cascade_activation_functions_count; i++)
 		fprintf(conf, "%u ", ann->cascade_activation_functions[i]);
 	fprintf(conf, "\n");
-	
+
 	fprintf(conf, "cascade_activation_steepnesses_count=%u\n", ann->cascade_activation_steepnesses_count);
 	fprintf(conf, "cascade_activation_steepnesses=");
 	for(i = 0; i < ann->cascade_activation_steepnesses_count; i++)
@@ -230,7 +230,7 @@ int fann_save_internal_fd(struct fann *ann, FILE * conf, const char *configurati
 		if(save_as_fixed)
 			fprintf(conf, "%u ", (int) floor((ann->cascade_activation_steepnesses[i] * fixed_multiplier) + 0.5));
 		else
-#endif	
+#endif
 			fprintf(conf, FANNPRINTF" ", ann->cascade_activation_steepnesses[i]);
 	}
 	fprintf(conf, "\n");
@@ -260,7 +260,7 @@ int fann_save_internal_fd(struct fann *ann, FILE * conf, const char *configurati
 			SCALE_SAVE( scale_deviation,	in )
 			SCALE_SAVE( scale_new_min,		in )
 			SCALE_SAVE( scale_factor,		in )
-		
+
 			SCALE_SAVE( scale_mean,			out )
 			SCALE_SAVE( scale_deviation,	out )
 			SCALE_SAVE( scale_new_min,		out )
@@ -270,7 +270,7 @@ int fann_save_internal_fd(struct fann *ann, FILE * conf, const char *configurati
 			fprintf(conf, "scale_included=0\n");
 	}
 #undef SCALE_SAVE
-#endif	
+#endif
 
 	/* 2.0 */
 	fprintf(conf, "neurons (num_inputs, activation_function, activation_steepness)=");
@@ -306,7 +306,7 @@ int fann_save_internal_fd(struct fann *ann, FILE * conf, const char *configurati
 	/* Now save all the connections.
 	 * We only need to save the source and the weight,
 	 * since the destination is given by the order.
-	 * 
+	 *
 	 * The weight is not saved binary due to differences
 	 * in binary definition of floating point numbers.
 	 * Especially an iPAQ does not use the same binary
@@ -336,6 +336,10 @@ int fann_save_internal_fd(struct fann *ann, FILE * conf, const char *configurati
 	}
 	fprintf(conf, "\n");
 
+	if (ann->user_data_string) {
+		fprintf(conf, "user_data_string=%s", ann->user_data_string);
+	}
+
 	return calculated_decimal_point;
 }
 
@@ -359,6 +363,27 @@ struct fann *fann_create_from_fd_1_1(FILE * conf, const char *configuration_file
 		fann_destroy(ann); \
 		return NULL; \
 	} \
+}
+
+char *fann_read_user_data_string(FILE * conf) {
+	unsigned int cur_size = 128;
+	char *ret = malloc(cur_size);
+	ret[0] = 0;
+	unsigned int pos = 0;
+	int cur;
+	for (;;) {
+		cur = fgetc(conf);
+		if (cur == EOF || cur == '\n') {
+			return ret;
+		}
+		if (pos >= cur_size - 1) {
+			cur_size += 128;
+			ret = realloc(ret, cur_size);
+		}
+		ret[pos] = (char)cur;
+		++pos;
+		ret[pos] = 0;
+	}
 }
 
 /* INTERNAL FUNCTION
@@ -462,8 +487,8 @@ struct fann *fann_create_from_fd(FILE * conf, const char *configuration_file)
 	fann_scanf("%u", "cascade_candidate_stagnation_epochs", &ann->cascade_candidate_stagnation_epochs);
 	fann_scanf("%u", "cascade_max_out_epochs", &ann->cascade_max_out_epochs);
 	fann_scanf("%u", "cascade_min_out_epochs", &ann->cascade_min_out_epochs);
-	fann_scanf("%u", "cascade_max_cand_epochs", &ann->cascade_max_cand_epochs);	
-	fann_scanf("%u", "cascade_min_cand_epochs", &ann->cascade_min_cand_epochs);	
+	fann_scanf("%u", "cascade_max_cand_epochs", &ann->cascade_max_cand_epochs);
+	fann_scanf("%u", "cascade_min_cand_epochs", &ann->cascade_min_cand_epochs);
 	fann_scanf("%u", "cascade_num_candidate_groups", &ann->cascade_num_candidate_groups);
 
 	fann_scanf(FANNSCANF, "bit_fail_limit", &ann->bit_fail_limit);
@@ -474,8 +499,8 @@ struct fann *fann_create_from_fd(FILE * conf, const char *configuration_file)
 	fann_scanf("%u", "cascade_activation_functions_count", &ann->cascade_activation_functions_count);
 
 	/* reallocate mem */
-	ann->cascade_activation_functions = 
-		(enum fann_activationfunc_enum *)realloc(ann->cascade_activation_functions, 
+	ann->cascade_activation_functions =
+		(enum fann_activationfunc_enum *)realloc(ann->cascade_activation_functions,
 		ann->cascade_activation_functions_count * sizeof(enum fann_activationfunc_enum));
 	if(ann->cascade_activation_functions == NULL)
 	{
@@ -500,8 +525,8 @@ struct fann *fann_create_from_fd(FILE * conf, const char *configuration_file)
 	fann_scanf("%u", "cascade_activation_steepnesses_count", &ann->cascade_activation_steepnesses_count);
 
 	/* reallocate mem */
-	ann->cascade_activation_steepnesses = 
-		(fann_type *)realloc(ann->cascade_activation_steepnesses, 
+	ann->cascade_activation_steepnesses =
+		(fann_type *)realloc(ann->cascade_activation_steepnesses,
 		ann->cascade_activation_steepnesses_count * sizeof(fann_type));
 	if(ann->cascade_activation_steepnesses == NULL)
 	{
@@ -511,7 +536,7 @@ struct fann *fann_create_from_fd(FILE * conf, const char *configuration_file)
 	}
 
 	fann_skip("cascade_activation_steepnesses=");
-	for(i = 0; i < ann->cascade_activation_steepnesses_count; i++) 
+	for(i = 0; i < ann->cascade_activation_steepnesses_count; i++)
 	{
 		if(fscanf(conf, FANNSCANF" ", &ann->cascade_activation_steepnesses[i]) != 1)
 		{
@@ -582,7 +607,7 @@ struct fann *fann_create_from_fd(FILE * conf, const char *configuration_file)
 			return NULL;													\
 		}																	\
 	}
-	
+
 	if(fscanf(conf, "scale_included=%u\n", &scale_included) == 1 && scale_included == 1)
 	{
 		fann_allocate_scale(ann);
@@ -590,7 +615,7 @@ struct fann *fann_create_from_fd(FILE * conf, const char *configuration_file)
 		SCALE_LOAD( scale_deviation,	in )
 		SCALE_LOAD( scale_new_min,		in )
 		SCALE_LOAD( scale_factor,		in )
-	
+
 		SCALE_LOAD( scale_mean,			out )
 		SCALE_LOAD( scale_deviation,	out )
 		SCALE_LOAD( scale_new_min,		out )
@@ -598,7 +623,7 @@ struct fann *fann_create_from_fd(FILE * conf, const char *configuration_file)
 	}
 #undef SCALE_LOAD
 #endif
-	
+
 	/* allocate room for the actual neurons */
 	fann_allocate_neurons(ann);
 	if(ann->errno_f == FANN_E_CANT_ALLOCATE_MEM)
@@ -646,6 +671,12 @@ struct fann *fann_create_from_fd(FILE * conf, const char *configuration_file)
 			return NULL;
 		}
 		connected_neurons[i] = first_neuron + input_neuron;
+	}
+
+	fann_skip("\n");
+
+	if (fscanf(conf, "user_data_string=") == 0) {
+		ann->user_data_string = fann_read_user_data_string(conf);
 	}
 
 #ifdef DEBUG

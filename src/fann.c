@@ -45,7 +45,7 @@ FANN_EXTERNAL struct fann *FANN_API fann_create_standard(unsigned int num_layers
 	}
 
 	va_start(layer_sizes, num_layers);
-	
+
 	status = 1;
 	for(i = 0; i < (int) num_layers; i++)
 	{
@@ -70,13 +70,13 @@ FANN_EXTERNAL struct fann *FANN_API fann_create_standard(unsigned int num_layers
 	return ann;
 }
 
-FANN_EXTERNAL struct fann *FANN_API fann_create_standard_array(unsigned int num_layers, 
+FANN_EXTERNAL struct fann *FANN_API fann_create_standard_array(unsigned int num_layers,
 															   const unsigned int *layers)
 {
-	return fann_create_sparse_array(1, num_layers, layers);	
+	return fann_create_sparse_array(1, num_layers, layers);
 }
 
-FANN_EXTERNAL struct fann *FANN_API fann_create_sparse(float connection_rate, 
+FANN_EXTERNAL struct fann *FANN_API fann_create_sparse(float connection_rate,
 													   unsigned int num_layers, ...)
 {
 	struct fann *ann;
@@ -580,7 +580,7 @@ FANN_EXTERNAL fann_type *FANN_API fann_run(struct fann * ann, fann_type * input)
 	fann_type last_steepness = 0;
 	unsigned int last_activation_function = 0;
 #else
-	fann_type max_sum = 0;	
+	fann_type max_sum = 0;
 #endif
 
 	/* first set the input */
@@ -783,13 +783,13 @@ FANN_EXTERNAL fann_type *FANN_API fann_run(struct fann * ann, fann_type * input)
 			last_activation_function = activation_function;
 #else
 			neuron_sum = fann_mult(steepness, neuron_sum);
-			
+
 			max_sum = 150/steepness;
 			if(neuron_sum > max_sum)
 				neuron_sum = max_sum;
 			else if(neuron_sum < -max_sum)
 				neuron_sum = -max_sum;
-			
+
 			neuron_it->sum = neuron_sum;
 
 			fann_activation_switch(activation_function, neuron_sum, neuron_it->value);
@@ -826,7 +826,8 @@ FANN_EXTERNAL void FANN_API fann_destroy(struct fann *ann)
 	fann_safe_free(ann->cascade_activation_functions);
 	fann_safe_free(ann->cascade_activation_steepnesses);
 	fann_safe_free(ann->cascade_candidate_scores);
-	
+	fann_safe_free(ann->user_data_string);
+
 #ifndef FIXEDFANN
 	fann_safe_free( ann->scale_mean_in );
 	fann_safe_free( ann->scale_deviation_in );
@@ -838,7 +839,7 @@ FANN_EXTERNAL void FANN_API fann_destroy(struct fann *ann)
 	fann_safe_free( ann->scale_new_min_out );
 	fann_safe_free( ann->scale_factor_out );
 #endif
-	
+
 	fann_safe_free(ann);
 }
 
@@ -1306,10 +1307,10 @@ FANN_EXTERNAL void FANN_API fann_print_parameters(struct fann *ann)
 	for(i = 0; i < ann->cascade_activation_steepnesses_count; i++)
 		printf("Cascade activation steepnesses[%d]    :%8.3f\n", i,
 			ann->cascade_activation_steepnesses[i]);
-		
+
 	printf("Cascade candidate groups             :%4d\n", ann->cascade_num_candidate_groups);
 	printf("Cascade no. of candidates            :%4d\n", fann_get_cascade_num_candidates(ann));
-	
+
 	/* TODO: dump scale parameters */
 #endif
 }
@@ -1420,7 +1421,7 @@ FANN_EXTERNAL void FANN_API fann_get_connection_array(struct fann *ann, struct f
 
     source_index = 0;
     destination_index = 0;
-    
+
     /* The following assumes that the last unused bias has no connections */
 
     /* for each layer */
@@ -1502,6 +1503,20 @@ FANN_EXTERNAL void FANN_API fann_set_weights(struct fann *ann, fann_type *weight
 }
 
 FANN_GET_SET(void *, user_data)
+
+FANN_EXTERNAL void FANN_API fann_set_user_data_string(struct fann *ann, const char *str) {
+	if (ann->user_data_string) {
+		free(ann->user_data_string);
+		ann->user_data_string = NULL;
+	}
+	if (str) {
+		ann->user_data_string = strdup(str);
+	}
+}
+
+FANN_EXTERNAL char * FANN_API fann_get_user_data_string(struct fann *ann) {
+	return ann->user_data_string;
+}
 
 #ifdef FIXEDFANN
 
@@ -1604,6 +1619,7 @@ struct fann *fann_allocate_structure(unsigned int num_layers)
 	ann->train_stop_function = FANN_STOPFUNC_MSE;
 	ann->callback = NULL;
     ann->user_data = NULL; /* User is responsible for deallocation */
+	ann->user_data_string = NULL;
 	ann->weights = NULL;
 	ann->connections = NULL;
 	ann->output = NULL;
@@ -1616,8 +1632,8 @@ struct fann *fann_allocate_structure(unsigned int num_layers)
 	ann->scale_deviation_out = NULL;
 	ann->scale_new_min_out = NULL;
 	ann->scale_factor_out = NULL;
-#endif	
-	
+#endif
+
 	/* variables used for cascade correlation (reasonable defaults) */
 	ann->cascade_output_change_fraction = 0.01f;
 	ann->cascade_candidate_change_fraction = 0.01f;
@@ -1632,8 +1648,8 @@ struct fann *fann_allocate_structure(unsigned int num_layers)
 	ann->cascade_min_cand_epochs = 50;
 	ann->cascade_candidate_scores = NULL;
 	ann->cascade_activation_functions_count = 10;
-	ann->cascade_activation_functions = 
-		(enum fann_activationfunc_enum *)calloc(ann->cascade_activation_functions_count, 
+	ann->cascade_activation_functions =
+		(enum fann_activationfunc_enum *)calloc(ann->cascade_activation_functions_count,
 							   sizeof(enum fann_activationfunc_enum));
 	if(ann->cascade_activation_functions == NULL)
 	{
@@ -1641,7 +1657,7 @@ struct fann *fann_allocate_structure(unsigned int num_layers)
 		free(ann);
 		return NULL;
 	}
-							   
+
 	ann->cascade_activation_functions[0] = FANN_SIGMOID;
 	ann->cascade_activation_functions[1] = FANN_SIGMOID_SYMMETRIC;
 	ann->cascade_activation_functions[2] = FANN_GAUSSIAN;
@@ -1654,8 +1670,8 @@ struct fann *fann_allocate_structure(unsigned int num_layers)
 	ann->cascade_activation_functions[9] = FANN_COS;
 
 	ann->cascade_activation_steepnesses_count = 4;
-	ann->cascade_activation_steepnesses = 
-		(fann_type *)calloc(ann->cascade_activation_steepnesses_count, 
+	ann->cascade_activation_steepnesses =
+		(fann_type *)calloc(ann->cascade_activation_steepnesses_count,
 							   sizeof(fann_type));
 	if(ann->cascade_activation_steepnesses == NULL)
 	{
@@ -1664,7 +1680,7 @@ struct fann *fann_allocate_structure(unsigned int num_layers)
 		free(ann);
 		return NULL;
 	}
-	
+
 	ann->cascade_activation_steepnesses[0] = (fann_type)0.25;
 	ann->cascade_activation_steepnesses[1] = (fann_type)0.5;
 	ann->cascade_activation_steepnesses[2] = (fann_type)0.75;
@@ -1680,14 +1696,14 @@ struct fann *fann_allocate_structure(unsigned int num_layers)
 	ann->rprop_delta_min = 0.0;
 	ann->rprop_delta_max = 50.0;
 	ann->rprop_delta_zero = 0.1f;
-	
+
  	/* Variables for use with SARPROP training (reasonable defaults) */
  	ann->sarprop_weight_decay_shift = -6.644f;
  	ann->sarprop_step_error_threshold_factor = 0.1f;
  	ann->sarprop_step_error_shift = 1.385f;
  	ann->sarprop_temperature = 0.015f;
  	ann->sarprop_epoch = 0;
- 
+
 	fann_init_error_data((struct fann_error *) ann);
 
 #ifdef FIXEDFANN
@@ -1743,7 +1759,7 @@ int fann_allocate_scale(struct fann *ann)
 	SCALE_ALLOCATE( scale_new_min,	out,	-1.0 )
 	SCALE_ALLOCATE( scale_factor,		out,	1.0 )
 #undef SCALE_ALLOCATE
-#endif	
+#endif
 	return 0;
 }
 
@@ -1845,13 +1861,13 @@ void fann_seed_rand()
 	}
 	else
 	{
-	        if(fread(&foo, sizeof(foo), 1, fp) != 1) 
+	        if(fread(&foo, sizeof(foo), 1, fp) != 1)
 	        {
   		       gettimeofday(&t, NULL);
 		       foo = t.tv_usec;
 #ifdef DEBUG
 		       printf("unable to read from /dev/urandom\n");
-#endif		      
+#endif
 		}
 		fclose(fp);
 	}

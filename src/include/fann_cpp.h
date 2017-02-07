@@ -958,6 +958,20 @@ namespace FANN {
             }
         }
 
+		char * get_user_data_string() {
+			if (ann != NULL) {
+				return fann_get_user_data_string(ann);
+			} else {
+				return NULL;
+			}
+		}
+
+		void set_user_data_string(const char *str) {
+			if (ann != NULL) {
+				fann_set_user_data_string(ann, str);
+			}
+		}
+
         /* Method: get_learning_rate
 
            Return the learning rate.
