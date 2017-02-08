@@ -1,7 +1,7 @@
 # Fast Artificial Neural Network Library
 
 This is a fork of [libfann](https://github.com/libfann/fann) intended to keep the library maintained as the original author no longer
-seems to be maintaining the project.  This is a fork of FANN version 1.0.0 and includes several bug fixes.  Pull requests are welcome.
+seems to be maintaining the project.  This is a fork of FANN git as of Jan. 2017.  It includes several bug fixes and additional features.  Pull requests are welcome.
 
 ## FANN
 
