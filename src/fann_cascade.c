@@ -845,6 +845,10 @@ void fann_add_candidate_neuron(struct fann *ann, struct fann_layer *layer)
 	unsigned int num_connections_in = (unsigned int)(layer->first_neuron - ann->first_layer->first_neuron);
 	unsigned int num_connections_out = (unsigned int)((ann->last_layer - 1)->last_neuron - (layer + 1)->first_neuron);
 	unsigned int num_connections_move = num_connections_out + num_connections_in;
+#ifdef CASCADE_DEBUG_FULL
+	printf("fann_add_candidate_neuron() num_connections_[in,out,move] = [%d, %d, %d]\n", num_connections_in, num_connections_out, num_connections_move);
+	printf("num input neurons %d\n", ann->first_layer->last_neuron - ann->first_layer->first_neuron);
+#endif
 
 	unsigned int candidate_con, candidate_output_weight;
 	int i;
@@ -888,37 +892,28 @@ void fann_add_candidate_neuron(struct fann *ann, struct fann_layer *layer)
 	/* the output weights for the candidates are located after the input weights */
 	candidate_output_weight = candidate->last_con;
 
-	/* move the actual output neurons and the indexes to the connection arrays */
+	/* Iterate over output neurons.  neuron_it points to the location of the output neuron *after*
+	 * it's copied/advanced forward by one. */
 	for(neuron_it = (ann->last_layer - 1)->last_neuron - 1; neuron_it != neuron_place; neuron_it--)
 	{
-#ifdef CASCADE_DEBUG_FULL
-		printf("move neuron %d -> %d\n", neuron_it - ann->first_layer->first_neuron - 1,
-			   neuron_it - ann->first_layer->first_neuron);
-#endif
+		/* move the neuron once place forward */
 		*neuron_it = *(neuron_it - 1);
 
-		/* move the weights */
-#ifdef CASCADE_DEBUG_FULL
-		printf("move weight[%d ... %d] -> weight[%d ... %d]\n", neuron_it->first_con,
-			   neuron_it->last_con - 1, neuron_it->first_con + num_connections_move - 1,
-			   neuron_it->last_con + num_connections_move - 2);
-#endif
-		for(i = neuron_it->last_con - 1; i >= (int)neuron_it->first_con; i--)
-		{
-#ifdef CASCADE_DEBUG_FULL
-			printf("move weight[%d] = weight[%d]\n", i + num_connections_move - 1, i);
-#endif
+		/* move the existing weights and connections to this output neuron */
+		for (i = neuron_it->last_con - 1; i >= (int)neuron_it->first_con; i--) {
+			ann->connections[i + num_connections_move - 1] = ann->connections[i];
 			ann->weights[i + num_connections_move - 1] = ann->weights[i];
 		}
 
-		/* move the indexes to weights */
+		/* update the neuron to point to the moved connections */
 		neuron_it->last_con += num_connections_move;
 		num_connections_move--;
 		neuron_it->first_con += num_connections_move;
 
-		/* set the new weight to the newly allocated neuron */
+		/* set up the new connection from the newly installed neuron to this output neuron */
+		ann->connections[neuron_it->last_con - 1] = neuron_place;
 		ann->weights[neuron_it->last_con - 1] =
-			(ann->weights[candidate_output_weight]) * ann->cascade_weight_multiplier;
+			ann->weights[candidate_output_weight] * ann->cascade_weight_multiplier;
 		candidate_output_weight++;
 	}
 
@@ -946,6 +941,7 @@ void fann_add_candidate_neuron(struct fann *ann, struct fann_layer *layer)
 
 	for(i = 0; i < (int)num_connections_in; i++)
 	{
+		ann->connections[i + neuron_place->first_con] = ann->first_layer->first_neuron + i;
 		ann->weights[i + neuron_place->first_con] = ann->weights[i + candidate_con];
 #ifdef CASCADE_DEBUG_FULL
 		printf("move weights[%d] -> weights[%d] (%f)\n", i + candidate_con,
