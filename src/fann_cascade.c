@@ -114,15 +114,10 @@ FANN_EXTERNAL void FANN_API fann_cascadetrain_on_data(struct fann *ann, struct f
 
 	if(neurons_between_reports && ann->callback == NULL)
 	{
-		printf("Train outputs    Current error: %.6f. Epochs %6d\n", fann_get_MSE(ann),
-			   total_epochs);
+		printf("Train outputs    Current error: %.6f. Bit fail: %u. Epochs %6d\n", fann_get_MSE(ann),
+			   fann_get_bit_fail(ann), total_epochs);
 	}
 
-	/* Set pointers in connected_neurons
-	 * This is ONLY done in the end of cascade training,
-	 * since there is no need for them during training.
-	 */
-	fann_set_shortcut_connections(ann);
 }
 
 FANN_EXTERNAL void FANN_API fann_cascadetrain_on_file(struct fann *ann, const char *filename,
@@ -813,31 +808,6 @@ struct fann_layer *fann_add_layer(struct fann *ann, struct fann_layer *layer)
 #endif
 
 	return layers + layer_pos;
-}
-
-void fann_set_shortcut_connections(struct fann *ann)
-{
-	struct fann_layer *layer_it;
-	struct fann_neuron *neuron_it, **neuron_pointers, *neurons;
-	unsigned int num_connections = 0, i;
-
-	neuron_pointers = ann->connections;
-	neurons = ann->first_layer->first_neuron;
-
-	for(layer_it = ann->first_layer + 1; layer_it != ann->last_layer; layer_it++)
-	{
-		for(neuron_it = layer_it->first_neuron; neuron_it != layer_it->last_neuron; neuron_it++)
-		{
-
-			neuron_pointers += num_connections;
-			num_connections = neuron_it->last_con - neuron_it->first_con;
-
-			for(i = 0; i != num_connections; i++)
-			{
-				neuron_pointers[i] = neurons + i;
-			}
-		}
-	}
 }
 
 void fann_add_candidate_neuron(struct fann *ann, struct fann_layer *layer)
