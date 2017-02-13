@@ -54,6 +54,7 @@ FANN_EXTERNAL void FANN_API fann_cascadetrain_on_data(struct fann *ann, struct f
 	unsigned int i;
 	unsigned int total_epochs = 0;
 	int desired_error_reached;
+	int desired_error_prev_reached = 0;
 
 	if(neurons_between_reports && ann->callback == NULL)
 	{
@@ -64,8 +65,17 @@ FANN_EXTERNAL void FANN_API fann_cascadetrain_on_data(struct fann *ann, struct f
 	{
 		/* train output neurons */
 		total_epochs += fann_train_outputs(ann, data, desired_error);
-		error = fann_get_MSE(ann);
-		desired_error_reached = fann_desired_error_reached(ann, desired_error);
+
+		if (!desired_error_prev_reached) {
+			error = fann_get_MSE(ann);
+			desired_error_reached = fann_desired_error_reached(ann, desired_error);
+			if (desired_error_reached) desired_error_prev_reached = 1;
+		}
+		/* Make sure we don't stop until we actually attain the desired error */
+		if (desired_error_prev_reached) {
+			error = fann_test_data(ann, data);
+			desired_error_reached = fann_desired_error_reached(ann, desired_error);
+		}
 
 		/* print current error */
 		if(neurons_between_reports &&
@@ -109,8 +119,12 @@ FANN_EXTERNAL void FANN_API fann_cascadetrain_on_data(struct fann *ann, struct f
 		fann_install_candidate(ann);
 	}
 
-	/* Train outputs one last time but without any desired error */
-	total_epochs += fann_train_outputs(ann, data, 0.0);
+	/* Train outputs one last time */
+	if (i > max_neurons) {
+		total_epochs += fann_train_outputs(ann, data, desired_error);
+		/* update MSE */
+		fann_test_data(ann, data);
+	}
 
 	if(neurons_between_reports && ann->callback == NULL)
 	{
@@ -149,14 +163,14 @@ int fann_train_outputs(struct fann *ann, struct fann_train_data *data, float des
 	fann_clear_train_arrays(ann);
 
 	/* run an initial epoch to set the initital error */
-	initial_error = fann_train_outputs_epoch(ann, data);
+	initial_error = fann_train_outputs_epoch(ann, data, desired_error);
 
 	if(fann_desired_error_reached(ann, desired_error) == 0)
 		return 1;
 
 	for(i = 1; i < max_epochs; i++)
 	{
-		error = fann_train_outputs_epoch(ann, data);
+		error = fann_train_outputs_epoch(ann, data, desired_error);
 
 		/*printf("Epoch %6d. Current error: %.6f. Bit fail %d.\n", i, error, ann->num_bit_fail); */
 
@@ -196,7 +210,7 @@ int fann_train_outputs(struct fann *ann, struct fann_train_data *data, float des
 	return max_epochs;
 }
 
-float fann_train_outputs_epoch(struct fann *ann, struct fann_train_data *data)
+float fann_train_outputs_epoch(struct fann *ann, struct fann_train_data *data, float desired_error)
 {
 	unsigned int i;
 
@@ -208,6 +222,8 @@ float fann_train_outputs_epoch(struct fann *ann, struct fann_train_data *data)
 		fann_compute_MSE(ann, data->output[i]);
 		fann_update_slopes_batch(ann, ann->last_layer - 1, ann->last_layer - 1);
 	}
+
+	if (fann_desired_error_reached(ann, desired_error) == 0) return fann_get_MSE(ann);
 
 	switch (ann->training_algorithm)
 	{
