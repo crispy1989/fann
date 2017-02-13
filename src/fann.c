@@ -27,6 +27,36 @@
 #include "config.h"
 #include "fann.h"
 
+FILE *fann_log_file = NULL;
+
+void fann_begin_log(char *filename, ...) {
+	va_list args;
+	char fn[1024];
+	if (fann_log_file) {
+		fann_close_log();
+	}
+	va_start(args, filename);
+	vsprintf(fn, filename, args);
+	va_end(args);
+	fann_log_file = fopen(fn, "w");
+}
+
+void fann_log(char *format, ...) {
+	va_list args;
+	if (fann_log_file) {
+		va_start(args, format);
+		vfprintf(fann_log_file, format, args);
+		va_end(args);
+	}
+}
+
+void fann_close_log() {
+	if (fann_log_file) {
+		fclose(fann_log_file);
+		fann_log_file = NULL;
+	}
+}
+
 /* #define FANN_NO_SEED */
 
 FANN_EXTERNAL struct fann *FANN_API fann_create_standard(unsigned int num_layers, ...)
@@ -566,6 +596,23 @@ FANN_EXTERNAL fann_type *FANN_API fann_run(struct fann * ann, fann_type * input)
 	unsigned int activation_function;
 	fann_type steepness;
 
+	fann_log("begin fann_run()\n");
+
+	fann_log("fann_run() inputs: ");
+	for (i = 0; i < ann->num_input; i++) {
+		fann_log("%f, ", input[i]);
+	}
+	fann_log("\n");
+
+	fann_log("Checking for bad connections\n");
+	unsigned int neuron_offset;
+	for (i = 0; i < ann->total_connections; i++) {
+		neuron_offset = ann->connections[i] - ann->first_layer->first_neuron;
+		if (neuron_offset > 1000) {
+			fann_log("Found bad connection at %d from neuron %d\n", i, neuron_offset);
+		}
+	}
+
 	/* store some variabels local for fast access */
 	struct fann_neuron *first_neuron = ann->first_layer->first_neuron;
 
@@ -604,12 +651,23 @@ FANN_EXTERNAL fann_type *FANN_API fann_run(struct fann * ann, fann_type * input)
 	(ann->first_layer->last_neuron - 1)->value = 1;
 #endif
 
+	fann_log("input layer: ");
+	for (i = 0; i < ann->first_layer->last_neuron - ann->first_layer->first_neuron; i++) {
+		fann_log("%f, ", ann->first_layer->first_neuron[i].value);
+	}
+	fann_log("\n");
+
+	fann_log("iterating layers (have %d layers)\n", ann->last_layer - ann->first_layer);
+
 	last_layer = ann->last_layer;
 	for(layer_it = ann->first_layer + 1; layer_it != last_layer; layer_it++)
 	{
+		fann_log("on layer %d\n", layer_it - ann->first_layer);
+		fann_log("iterating neurons (have %d neurons)\n", layer_it->last_neuron - layer_it->first_neuron);
 		last_neuron = layer_it->last_neuron;
 		for(neuron_it = layer_it->first_neuron; neuron_it != last_neuron; neuron_it++)
 		{
+			fann_log("on neuron %d\n", neuron_it - layer_it->first_neuron);
 			if(neuron_it->first_con == neuron_it->last_con)
 			{
 				/* bias neurons */
@@ -618,6 +676,7 @@ FANN_EXTERNAL fann_type *FANN_API fann_run(struct fann * ann, fann_type * input)
 #else
 				neuron_it->value = 1;
 #endif
+				fann_log("Bias neuron.  Skipping and setting value to 1.\n");
 				continue;
 			}
 
@@ -628,8 +687,18 @@ FANN_EXTERNAL fann_type *FANN_API fann_run(struct fann * ann, fann_type * input)
 			num_connections = neuron_it->last_con - neuron_it->first_con;
 			weights = ann->weights + neuron_it->first_con;
 
+			fann_log("[ activation_function, steepness, num_connections ] = [ %d, %d, %d ]\n", activation_function, steepness, num_connections);
+			fann_log("weights: ");
+			for (i = 0; i < neuron_it->last_con - neuron_it->first_con; i++) {
+				fann_log("%f, ", weights[i]);
+			}
+			fann_log("\n");
+
+			fann_log("Set neuron_sum to 0\n");
+
 			if(ann->connection_rate >= 1)
 			{
+				fann_log("connection rate greater than 1\n");
 				if(ann->network_type == FANN_NETTYPE_SHORTCUT)
 				{
 					neurons = ann->first_layer->first_neuron;
@@ -673,8 +742,23 @@ FANN_EXTERNAL fann_type *FANN_API fann_run(struct fann * ann, fann_type * input)
 			}
 			else
 			{
+				fann_log("connection rate less than 1\n");
 				neuron_pointers = ann->connections + neuron_it->first_con;
 
+				fann_log("neuron_pointers points to neuron %d\n", neuron_pointers - ann->connections);
+				fann_log("[ first_con, last_con ] = [ %d, %d ]\n", neuron_it->first_con, neuron_it->last_con);
+
+				neuron_offset = neuron_pointers[i] - ann->first_layer->first_neuron;
+				if (neuron_offset > 1000) {
+					fann_log("Bad connection to layer %d neuron %d\n", layer_it - ann->first_layer, neuron_it - layer_it->first_neuron);
+				}
+
+				for (i = 0; i < num_connections; i++) {
+					fann_log("connection %d from neuron %d: adding %f * %f\n", i, neuron_pointers[i] - ann->first_layer->first_neuron, weights[i], neuron_pointers[i]->value);
+					neuron_sum += fann_mult(weights[i], neuron_pointers[i]->value);
+				}
+
+#if 0
 				i = num_connections & 3;	/* same as modulo 4 */
 				switch (i)
 				{
@@ -696,6 +780,9 @@ FANN_EXTERNAL fann_type *FANN_API fann_run(struct fann * ann, fann_type * input)
 						fann_mult(weights[i + 2], neuron_pointers[i + 2]->value) +
 						fann_mult(weights[i + 3], neuron_pointers[i + 3]->value);
 				}
+#endif
+
+				fann_log("neuron_sum is %f\n", neuron_sum);
 			}
 
 #ifdef FIXEDFANN
@@ -818,6 +905,9 @@ FANN_EXTERNAL fann_type *FANN_API fann_run(struct fann * ann, fann_type * input)
 	printf("]\n");
 	#endif
 #endif
+
+	fann_log("end fann_run()\n");
+
 	return ann->output;
 }
 

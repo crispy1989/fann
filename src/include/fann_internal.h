@@ -152,4 +152,9 @@ FANN_EXTERNAL void FANN_API fann_scale_data_to_range(fann_type ** data, unsigned
 
 #endif
 
+void fann_begin_log(char *filename, ...);
+void fann_close_log();
+void fann_log(char *format, ...);
+
 #endif
+
