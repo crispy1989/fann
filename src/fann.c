@@ -1828,6 +1828,37 @@ void fann_allocate_connections(struct fann *ann)
 	}
 }
 
+
+FILE *fann_log_file = NULL;
+
+void fann_begin_log(char *filename, ...) {
+	va_list args;
+	char fn[1024];
+	if (fann_log_file) {
+		fann_close_log();
+	}
+	va_start(args, filename);
+	vsprintf(fn, filename, args);
+	va_end(args);
+	fann_log_file = fopen(fn, "w");
+}
+
+void fann_log(char *format, ...) {
+	va_list args;
+	if (fann_log_file) {
+		va_start(args, format);
+		vfprintf(fann_log_file, format, args);
+		va_end(args);
+	}
+}
+
+void fann_close_log() {
+	if (fann_log_file) {
+		fclose(fann_log_file);
+		fann_log_file = NULL;
+	}
+}
+
 #ifdef FANN_NO_SEED
 int FANN_SEED_RAND = 0;
 #else
