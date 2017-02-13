@@ -81,9 +81,15 @@ FANN_EXTERNAL void FANN_API fann_destroy_train(struct fann_train_data *data)
 /*
  * Test a set of training data and calculate the MSE 
  */
+int tdctr = 0;
 FANN_EXTERNAL float FANN_API fann_test_data(struct fann *ann, struct fann_train_data *data)
 {
 	unsigned int i;
+	char fn[1024];
+	tdctr++;
+	sprintf(fn, "fann_test_data_%d", tdctr);
+	printf("fann_test_data() called\n");
+	fann_save_train(data, fn);
 	if(fann_check_input_output_sizes(ann, data) == -1)
 		return 0;
 	
@@ -93,7 +99,7 @@ FANN_EXTERNAL float FANN_API fann_test_data(struct fann *ann, struct fann_train_
 	{
 		fann_test(ann, data->input[i], data->output[i]);
 	}
-
+	printf("mse is %f\n", fann_get_MSE(ann));
 	return fann_get_MSE(ann);
 }
 

@@ -805,6 +805,19 @@ FANN_EXTERNAL fann_type *FANN_API fann_run(struct fann * ann, fann_type * input)
 	{
 		output[i] = neurons[i].value;
 	}
+#if 0
+	#ifndef FIXEDFANN
+	printf("fann_run() input=[");
+	for (i = 0; i < num_input; i++) {
+		printf("%.4f,", input[i]);
+	}
+	printf("]   output=[");
+	for (i = 0; i < num_output; i++) {
+		printf("%.4f,", output[i]);
+	}
+	printf("]\n");
+	#endif
+#endif
 	return ann->output;
 }
 

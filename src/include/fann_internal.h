@@ -106,7 +106,7 @@ int fann_desired_error_reached(struct fann *ann, float desired_error);
 /* Some functions for cascade */
 int fann_train_outputs(struct fann *ann, struct fann_train_data *data, float desired_error);
 
-float fann_train_outputs_epoch(struct fann *ann, struct fann_train_data *data);
+float fann_train_outputs_epoch(struct fann *ann, struct fann_train_data *data, float desired_error);
 
 int fann_train_candidates(struct fann *ann, struct fann_train_data *data);
 
