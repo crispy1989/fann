@@ -2404,6 +2404,37 @@ namespace FANN {
             }
         }
 
+        /* Method: get_cascade_min_out_epochs
+
+           The minimum out epochs determines the minimum number of epochs the output connections
+           may be trained after adding a new candidate neuron.
+
+           The default min out epochs is 50
+
+           See also:
+                <set_cascade_min_out_epochs>, <fann_get_cascade_min_out_epochs>
+         */
+        unsigned int get_cascade_min_out_epochs() {
+            unsigned int min_out_epochs = 0;
+            if (ann != NULL) {
+                min_out_epochs = fann_get_cascade_min_out_epochs(ann);
+            }
+            return min_out_epochs;
+        }
+
+        /* Method: set_cascade_min_out_epochs
+
+           Sets the minimum out epochs.
+
+           See also:
+                <get_cascade_min_out_epochs>, <fann_set_cascade_min_out_epochs>
+         */
+        void set_cascade_min_out_epochs(unsigned int cascade_min_out_epochs) {
+            if (ann != NULL) {
+                fann_set_cascade_min_out_epochs(ann, cascade_min_out_epochs);
+            }
+        }
+
         /* Method: get_cascade_max_cand_epochs
 
            The maximum candidate epochs determines the maximum number of epochs the input
@@ -2436,6 +2467,41 @@ namespace FANN {
         void set_cascade_max_cand_epochs(unsigned int cascade_max_cand_epochs) {
             if (ann != NULL) {
                 fann_set_cascade_max_cand_epochs(ann, cascade_max_cand_epochs);
+            }
+        }
+
+        /* Method: get_cascade_min_cand_epochs
+
+           The minimum candidate epochs determines the minimum number of epochs the input
+           connections to the candidates may be trained before adding a new candidate neuron.
+
+           The default min candidate epochs is 50
+
+           See also:
+                <set_cascade_min_cand_epochs>, <fann_get_cascade_min_cand_epochs>
+
+            This function appears in FANN >= 2.0.0.
+         */
+        unsigned int get_cascade_min_cand_epochs() {
+            unsigned int min_cand_epochs = 0;
+            if (ann != NULL) {
+                min_cand_epochs = fann_get_cascade_min_cand_epochs(ann);
+            }
+            return min_cand_epochs;
+        }
+
+        /* Method: set_cascade_min_cand_epochs
+
+           Sets the min candidate epochs.
+
+           See also:
+                <get_cascade_min_cand_epochs>, <fann_set_cascade_min_cand_epochs>
+
+            This function appears in FANN >= 2.0.0.
+         */
+        void set_cascade_min_cand_epochs(unsigned int cascade_min_cand_epochs) {
+            if (ann != NULL) {
+                fann_set_cascade_min_cand_epochs(ann, cascade_min_cand_epochs);
             }
         }
 
